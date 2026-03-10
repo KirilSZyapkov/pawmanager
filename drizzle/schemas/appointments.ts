@@ -3,6 +3,8 @@ import { businesses } from "./businesses";
 import { pets } from "./pets";
 import { services } from "./services";
 import { staff } from "./staff";
+import { relations } from "drizzle-orm";
+import { photos } from "./photos";
 
 export const appointmentStatusEnum = pgEnum('appointment_status', [
   'pending',
@@ -38,4 +40,27 @@ export const appointments = pgTable('appointments', {
   staffDateIdx: index('appointment_staff_date_idx').on(table.staffId, table.startTime),
   petIdx: index('appointment_pet_idx').on(table.petId),
   statusIdx: index('appointment_status_idx').on(table.status),
+}));
+
+
+export const appointmentsRelations = relations(appointments, ({ one, many }) => ({
+  business: one(businesses, {
+    fields: [appointments.businessId],
+    references: [businesses.id],
+  }),
+  pet: one(pets, {
+    fields: [appointments.petId],
+    references: [pets.id],
+  }),
+  service: one(services, {
+    fields: [appointments.serviceId],
+    references: [services.id],
+  }),
+  staff: one(staff, {
+    fields: [appointments.staffId],
+    references: [staff.id],
+  }),
+  photos: many(photos),
+  // payment: one(payments), to do
+  // notifications: many(notifications), to do
 }));

@@ -1,5 +1,7 @@
 import { boolean, decimal, index, integer, jsonb, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { businesses } from "./businesses";
+import { relations } from "drizzle-orm";
+import { appointments } from "./appointments";
 
 export const services = pgTable('services', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -16,4 +18,12 @@ export const services = pgTable('services', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
   businessIdx: index('service_business_idx').on(table.businessId),
+}));
+
+export const servicesRelations = relations(services, ({ one, many }) => ({
+  business: one(businesses, {
+    fields: [services.businessId],
+    references: [businesses.id],
+  }),
+  appointments: many(appointments),
 }));

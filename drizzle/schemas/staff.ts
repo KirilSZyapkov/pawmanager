@@ -1,5 +1,7 @@
 import { boolean, decimal, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 import { businesses } from "./businesses";
+import { relations } from "drizzle-orm";
+import { appointments } from "./appointments";
 export const userRoleEnum = pgEnum('user_role', ['owner', 'admin', 'manager', 'groomer', 'receptionist']);
 
 export const staff = pgTable('staff', {
@@ -20,4 +22,12 @@ export const staff = pgTable('staff', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
   businessEmailIdx: uniqueIndex('staff_business_email_idx').on(table.businessId, table.email),
+}));
+
+export const staffRelations = relations(staff, ({ one, many }) => ({
+  business: one(businesses, {
+    fields: [staff.businessId],
+    references: [businesses.id],
+  }),
+  appointments: many(appointments),
 }));

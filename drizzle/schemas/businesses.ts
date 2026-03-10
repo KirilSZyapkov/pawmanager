@@ -1,5 +1,11 @@
 import { index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
-import { subscriptionTierEnum } from "./subscriptions";
+import { subscriptions, subscriptionTierEnum } from "./subscriptions";
+import { relations } from "drizzle-orm";
+import { appointments } from "./appointments";
+import { clients } from "./clients";
+import { pets } from "./pets";
+import { services } from "./services";
+import { staff } from "./staff";
 
 export const businessStatusEnum = pgEnum('business_status', ['active', 'suspended', 'trial', 'cancelled']);
 
@@ -28,4 +34,15 @@ export const businesses = pgTable('businesses', {
 }, (table) => ({
   emailIdx: uniqueIndex('business_email_idx').on(table.email),
   cityIdx: index('business_city_idx').on(table.city),
+}));
+
+export const businessesRelations = relations(businesses, ({ many }) => ({
+  staff: many(staff),
+  clients: many(clients),
+  pets: many(pets),
+  services: many(services),
+  appointments: many(appointments),
+  // payments: many(payments), to do
+  subscriptions: many(subscriptions),
+  // notifications: many(notifications), to do
 }));

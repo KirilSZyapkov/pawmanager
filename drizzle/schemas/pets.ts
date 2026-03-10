@@ -1,6 +1,9 @@
 import { boolean, decimal, index, integer, pgEnum, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { clients } from "./clients";
 import { businesses } from "./businesses";
+import { relations } from "drizzle-orm";
+import { appointments } from "./appointments";
+import { photos } from "./photos";
 
 export const petSizeEnum = pgEnum('pet_size', ['tiny', 'small', 'medium', 'large', 'xlarge']);
 export const petGenderEnum = pgEnum('pet_gender', ['male', 'female']);
@@ -33,4 +36,17 @@ export const pets = pgTable('pets', {
 }, (table) => ({
   clientIdx: index('pet_client_idx').on(table.clientId),
   businessIdx: index('pet_business_idx').on(table.businessId),
+}));
+
+export const petsRelations = relations(pets, ({ one, many }) => ({
+  client: one(clients, {
+    fields: [pets.clientId],
+    references: [clients.id],
+  }),
+  business: one(businesses, {
+    fields: [pets.businessId],
+    references: [businesses.id],
+  }),
+  appointments: many(appointments),
+  photos: many(photos),
 }));

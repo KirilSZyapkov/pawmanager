@@ -1,5 +1,7 @@
 import { boolean, decimal, integer, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { businesses } from "./businesses";
+import { relations } from "drizzle-orm";
+import { pets } from "./pets";
 
 export const clients = pgTable('clients', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -20,3 +22,13 @@ export const clients = pgTable('clients', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+export const clientsRelations = relations(clients, ({ one, many }) => ({
+  business: one(businesses, {
+    fields: [clients.businessId],
+    references: [businesses.id],
+  }),
+  pets: many(pets),
+  // payments: many(payments), to do
+  // notifications: many(notifications), to do
+}));

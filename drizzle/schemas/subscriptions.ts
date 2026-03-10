@@ -1,5 +1,6 @@
 import { boolean, decimal, index, jsonb, pgEnum, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { businesses } from "./businesses";
+import { relations } from "drizzle-orm/relations";
 
 export const subscriptionTierEnum = pgEnum('subscription_tier', ['basic', 'pro', 'enterprise']);
 
@@ -23,4 +24,12 @@ export const subscriptions = pgTable('subscriptions', {
 }, (table) => ({
   businessIdx: index('subscription_business_idx').on(table.businessId),
   stripeCustomerIdx: index('subscription_stripe_customer_idx').on(table.stripeCustomerId),
+}));
+
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  business: one(businesses, {
+    fields: [subscriptions.businessId],
+    references: [businesses.id],
+  }),
 }));
