@@ -34,10 +34,11 @@ export const businessRouter = router({
           lt(appointments.startTime, new Date(today.getTime() + 24 * 60 * 60 * 1000))
         ),
     });
-    
+
     const totalClients = await db.query.clients.findMany({
       where: (clients, { eq }) => eq(clients.businessId, ctx.business.id),
     });
+
   }),
 
 })
