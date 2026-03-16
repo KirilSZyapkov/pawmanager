@@ -4,7 +4,7 @@ import { router, businessProcedure } from '../trpc';
 import db from '@/drizzle/db';
 import { eq, and } from 'drizzle-orm';
 import { staffSchema } from '@/lib/validators/staff';
-import { appointments, staff } from "@/drizzle/schema";
+import { staff } from "@/drizzle/schema";
 
 export const staffRouter = router({
 
@@ -57,7 +57,7 @@ export const staffRouter = router({
         });
       };
 
-      const [newEmployee] = await db.insert(staff).values(...input, businessId: ctx.business.id).returning();
+      const [newEmployee] = await db.insert(staff).values({ ...input, businessId: ctx.business.id }).returning();
 
       return newEmployee;
     }),
@@ -70,7 +70,24 @@ export const staffRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const [updated] = await db.update(staff).set({ ...input.data, updatedAt: new Date() }).where(and(eq(staff.id, input.id), eq(staff.businessId, ctx.business.id))).returning();
+      const [updated] = await db.update(staff).set({ ...input.data, updatedAt: new Date() })
+      .where(and(eq(staff.id, input.id), eq(staff.businessId, ctx.business.id)))
+      .returning();
       return updated;
-    })
+    }),
+
+    deleteEmployee: businessProcedure
+    .input(
+      z.object({
+        id: z.string().uuid()
+      })
+    )
+    .mutation(
+      async ({ctx, input})=> {
+        const [deleted] = await db.update(staff).set({ isActive: false, updatedAt: new Date() })
+        .where(and(eq(staff.id, input.id), eq(staff.businessId, ctx.business.id)))
+        .returning();
+        return deleted;
+      }
+    )
 })
