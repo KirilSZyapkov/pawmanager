@@ -95,5 +95,20 @@ export const petRouter = router({
       const [newPetRecord] = await db.insert(pets).values({...input, businessId: ctx.business.id}).returning();
       return newPetRecord;
     }
+  ),
+
+  updatePetRecord: businessProcedure
+  .input(z.object({
+    id: z.string().uuid(),
+    data: petSchema.partial(),
+  }))
+  .mutation(
+    async({ctx, input})=>{
+      const [updatedPetRecord] = await db.update(pets).set({...input.data, updatedAt: new Date()})
+      .where(and(eq(pets.id, input.id), eq(pets.businessId, ctx.business.id)))
+      .returning();
+
+      return updatedPetRecord;
+    }
   )
 })
