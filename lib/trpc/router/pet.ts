@@ -110,5 +110,17 @@ export const petRouter = router({
 
       return updatedPetRecord;
     }
+  ),
+
+  deletePetRecord: businessProcedure
+  .input(z.object({id: z.string().uuid()}))
+  .mutation(
+    async({ctx, input})=>{
+      const [deletedPetRecord] = await db.delete(pets)
+      .where(and(eq(pets.id, input.id), eq(pets.businessId, ctx.business.id)))
+      .returning();
+
+      return deletedPetRecord;
+    }
   )
 })
