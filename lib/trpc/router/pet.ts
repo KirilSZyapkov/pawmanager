@@ -145,5 +145,23 @@ export const petRouter = router({
 
       return appointmentsHistory;
     }
+  ),
+
+  uploadPetPhoto: businessProcedure
+  .input(
+    z.object({
+      petId: z.uuid(),
+      url: z.url(),
+      type: z.enum(["before","after","profile"]),
+      caption: z.string().optional(),
+      appointmenId: z.uuid().optional()
+    })
+  )
+  .mutation(
+    async({ctx, input})=>{
+      const [photo] = await db.insert(photos).values({...input, businessId: ctx.business.id, uploadedBy: ctx.staff.id}).returning();
+
+      return photo;
+    }
   )
 })
