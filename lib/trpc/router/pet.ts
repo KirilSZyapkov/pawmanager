@@ -122,5 +122,28 @@ export const petRouter = router({
 
       return deletedPetRecord;
     }
+  ),
+
+  getAppointmentsHistory: businessProcedure
+  .input(
+    z.object({
+      petId: z.string().uuid(),
+      limit: z.number().min(1).max(50).default(20)
+    })
+  )
+  .query(
+    async({ctx, input})=>{
+      const appointmentsHistory = await db.query.appointments.findMany({
+        where: (appointments, {eq, and}) =>and(eq(appointments.petId, input.petId), eq(appointments.businessId, ctx.business.id)),
+        with:{
+          service: true,
+          staff: true,
+        },
+        orderBy: (appointments, {desc})=> [desc(appointments.startTime)],
+        limit: input.limit,
+      });
+
+      return appointmentsHistory;
+    }
   )
 })
