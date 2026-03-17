@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, businessProcedure } from '../trpc';
 import db from "@/drizzle/db";
-import { pets, appointments, photos } from '@/drizzle/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { pets, photos } from '@/drizzle/schema';
+import { eq, and} from 'drizzle-orm';
 import { petSchema } from '@/lib/validators/pet';
 
 export const petRouter = router({
@@ -27,14 +27,14 @@ export const petRouter = router({
             conditions.push(eq(pets.clientId, input.clientId));
           }
 
-          if(input.search){
-            conditions.push(
-              or(
-                ilike(pets.name, `%${input.search}%`),
-                ilike(pets.breed, `%${input.search}%`)
-              )
-            )
-          }
+          // if(input.search){
+          //   conditions.push(
+          //     or(
+          //       ilike(pets.name, `%${input.search}%`),
+          //       ilike(pets.breed, `%${input.search}%`)
+          //     )
+          //   )
+          // }
 
           return and(...conditions);
         },
