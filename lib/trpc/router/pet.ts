@@ -52,5 +52,38 @@ export const petRouter = router({
 
       return await query;
     }
+  ),
+
+  getPetById: businessProcedure
+  .input(z.object({id: z.string().uuid()}))
+  .query(
+    async ({ctx, input})=>{
+      const pet = await db.query.pets.findFirst({
+        where: (pets, {eq})=> and(eq(pets.id, input.id), eq(pets.businessId, ctx.business.id)),
+        with:{
+          client: true,
+          appointments: {
+            limit: 10,
+            orderBy: (appointments, {desc})=> [desc(appointments.startTime)],
+            with: {
+              service: true,
+              staff: true,
+            },
+          },
+          photos: {
+            orderBy: (photos, {desc})=> [desc(photos.createdAt)],
+          },
+        },
+      });
+
+      if(!pet){
+         throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Pet record not found',
+        });
+      };
+
+      return pet;
+    }
   )
 })
