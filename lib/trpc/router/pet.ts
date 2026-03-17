@@ -85,5 +85,15 @@ export const petRouter = router({
 
       return pet;
     }
+  ),
+
+
+  createNewPetRecord: businessProcedure
+  .input(petSchema)
+  .mutation(
+    async ({ctx, input})=>{
+      const [newPetRecord] = await db.insert(pets).values({...input, businessId: ctx.business.id}).returning();
+      return newPetRecord;
+    }
   )
 })
