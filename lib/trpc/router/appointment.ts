@@ -3,6 +3,7 @@ import {TRPCError} from "@trpc/server";
 import {router, businessProcedure} from "../trpc";
 import db from "@/drizzle/db";
 import {appointmentSchema} from "@/lib/validators/appointment";
+import { appointments } from "@/drizzle/schema";
 
 export const appointmentRouter = router({
 
@@ -92,5 +93,35 @@ export const appointmentRouter = router({
             };
 
             return appointment;
-        })
+        }),
+
+        createNewAppointment: businessProcedure
+       .input(appointmentSchema)
+       .mutation(
+        async({ctx, input})=>{
+            const conflictting = await db.query.appointments.findFirst({
+                where: (appointments, {and, eq, between})=>
+                    and(
+                        eq(appointments.businessId, ctx.business.id),
+                        eq(appointments.staffId, input.staffId),
+                        eq(appointments.status, "confirmed"),
+                        between(
+                            appointments.startTime,
+                            input.startTime,
+                            input.endTime
+                        )
+                    )
+            });
+
+            if(conflictting){
+                throw new TRPCError({
+                    code: 'CONFLICT',
+                    message: 'Този час вече е зает',
+                })
+            };
+
+            const [newAppointmentRecord] = await db.insert(appointments).values({...input, businessId: ctx.business.id}).returning();
+            
+            return newAppointmentRecord;
+       )
 })
