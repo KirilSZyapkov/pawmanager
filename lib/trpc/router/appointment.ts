@@ -123,5 +123,26 @@ export const appointmentRouter = router({
             const [newAppointmentRecord] = await db.insert(appointments).values({...input, businessId: ctx.business.id}).returning();
             
             return newAppointmentRecord;
+       ),
+
+       updateAppointmentRecord: businessProcedure
+       .input(
+        z.object({
+            id: z.uuid(),
+            data: appointmentSchema.partial(),
+        })
        )
+       .mutation(
+        async ({ctx, input})=>{
+            const [updatedAppointmentRecord] = await db.update(appointments).set({...input.data, updatedAt: new Date()})
+            .where(
+                and(
+                    eq(appointments.id, input.id),
+                    eq(appointments.businessId, ctx.business.id)
+                )
+            )
+            .returning();
+
+            return updatedAppointmentRecord;
+        })
 })
