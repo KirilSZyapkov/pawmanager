@@ -3,7 +3,6 @@ import {TRPCError} from "@trpc/server";
 import {router, businessProcedure} from "../trpc";
 import db from "@/drizzle/db";
 import {appointmentSchema} from "@/lib/validators/appointment";
-import { appointments } from "@/drizzle/schema";
 
 export const appointmentRouter = router({
 
@@ -60,8 +59,38 @@ export const appointmentRouter = router({
             });
 
             return query;
-        },
+        }),
 
-        
-    )
+        getAppointmentById: businessProcedure
+        .input(z.object({id: z.uuid()}))
+        .query(
+            async ({ctx, input})=>{
+            const appointment = await db.query.appointments.findFirst({
+                where: (appointments, {and, eq})=>
+                    and(
+                        eq(appointments.id, input.id),
+                        eq(appointments.businessId, ctx.business.id)
+                    ),
+                with: {
+                    pet: {
+                        with:{
+                            client: true,
+                        }
+                    }
+                },
+                service:true,
+                staff: true,
+                photo: true,
+                payment: true,
+            });
+
+            if(!appointment){
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Резервацията не е намерена',
+                })
+            };
+
+            return appointment;
+        })
 })
