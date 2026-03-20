@@ -173,5 +173,85 @@ export const appointmentRouter = router({
           .returning();
 
         return updatedAppointmetRecord;
+      }),
+
+  getAvailableSlots: businessProcedure
+    .input(
+      z.object({
+        date: z.date(),
+        staffId: z.uuid().optional(),
+        serviceId: z.uuid().optional()
       })
+    )
+    .query(
+      async ({ ctx, input }) => {
+        const dayStart = new Date(input.date);
+        dayStart.setHours(0, 0, 0, 0);
+
+        const dayEnd = new Date(input.date);
+        dayEnd.setHours(23, 59, 59, 999);
+
+        const bookedAppointments = await db.query.appointments.findMany({
+          where: (appointments, { and, eq, between }) =>
+            and(
+              eq(appointments.businessId, ctx.business.id),
+              eq(appointments.status, "confirmed"),
+              between(appointments.startTime, dayStart, dayEnd),
+              input.staffId ? eq(appointments.staffId, input.staffId) : undefined
+            )
+        });
+
+        const staffListRecords = input.staffId ? await db.query.staff.findMany({
+          where: (staff, { eq }) => eq(staff.id, input.staffId!),
+        })
+          : await db.query.staff.findMany({
+            where: (staff, { eq, and }) =>
+              and(
+                eq(staff.businessId, ctx.business.id),
+                eq(staff.isActive, true)
+              )
+          });
+
+        const slots = [];
+        for (const staff of staffListRecords) {
+          const dayOfWeek = input.date.getDate();
+          if (!staff.workingDays?.includes(dayOfWeek)) {
+            continue;
+          };
+
+          const workingHours = staff.workingHours as any;
+
+          if (!workingHours) continue;
+
+          const [startHours, startMinute] = workingHours.start.split(":").map(Number);
+          const [endHour, endMinute] = workingHours.end.split(":").map(Number);
+
+          let currentTime = new Date(input.date);
+          currentTime.setHours(startHours, startMinute, 0);
+
+          const endTime = new Date(input.date);
+          endTime.setHours(endHour, endMinute, 0);
+
+          while (currentTime < endTime) {
+            const slotEnd = new Date(currentTime.getTime() + 30 * 60000); // +30min
+
+            const isBooked = bookedAppointments.some(
+              (apt) => apt.staffId === staff.id && apt.startTime < slotEnd && new Date(apt.startTime.getTime() + apt.service?.duratio * 60000) > currentTime
+            );
+
+            if (!isBooked) {
+              slots.push({
+                staffId: staff.id,
+                staffName: staff.name,
+                startTime: currentTime,
+                endTime: slotEnd,
+              });
+            }
+
+            currentTime = slotEnd;
+          }
+        }
+        return slots.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+      }
+    )
 })
