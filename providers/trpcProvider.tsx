@@ -7,7 +7,7 @@ import { trpc } from '@/lib/trpc/client';
 import { SessionProvider } from 'next-auth/react';
 import superjson from 'superjson';
 
-export function Providers({children: React.ReactNode}){
+export function trpcProvider({children: React.ReactNode}){
     const [queryClient] = useState(
         ()=> new QueryClient({ 
             defaulOptions: {
