@@ -1,16 +1,15 @@
-import {CreateNextContextOptions} from "@trpc/server/adapters/next";
+import { NextRequest } from "next/server";
 import {getServerSession} from "next-auth";
 import db from "../../drizzle/db";
 import {authConfig} from "@/lib/auth/config";
 
-export async function createContext(opts: CreateNextContextOptions) {
+export async function createContext(req: NextRequest) {
   const session = await getServerSession(authConfig);
 
   return{
     db,
     session,
-    req: opts.req,
-    res: opts.res
+    req
   };
 }
 

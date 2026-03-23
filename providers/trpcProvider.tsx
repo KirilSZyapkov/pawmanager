@@ -5,25 +5,23 @@ import { httpBatchLink } from '@trpc/client';
 import { useState } from 'react';
 import { trpc } from '@/lib/trpc/client';
 import { SessionProvider } from 'next-auth/react';
-import superjson from 'superjson';
 
-export function trpcProvider({children: React.ReactNode}){
+export function TrpcProvider({ children }: { children: React.ReactNode }) {
     const [queryClient] = useState(
-        ()=> new QueryClient({ 
-            defaulOptions: {
+        () => new QueryClient({
+            defaultOptions: {
                 queries: {
-                    staleTime: 60*1000, // 1 min
+                    staleTime: 60 * 1000, // 1 min
                 }
             }
         })
     );
 
-    const [trpcClient] = useState(()=>
+    const [trpcClient] = useState(() =>
         trpc.createClient({
-            links; [
+            links: [
                 httpBatchLink({
                     url: '/api/trpc',
-                    transformer: superjson,
                 })
             ]
         })
@@ -32,7 +30,7 @@ export function trpcProvider({children: React.ReactNode}){
     return (
         <SessionProvider>
             <trpc.Provider client={trpcClient} queryClient={queryClient}>
-                <QueryClientProvider  client={queryClient}>{children}</QueryClientProvider>
+                <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
             </trpc.Provider>
         </SessionProvider>
     )

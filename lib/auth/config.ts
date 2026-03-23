@@ -1,9 +1,6 @@
 import {NextAuthOptions} from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import db from "@/drizzle/db";
-import { businesses, staff, clients } from "@/drizzle/schema";
-import {and, eq} from "drizzle-orm";
-import bcrypt from "bcrypt";
 
 declare module 'next-auth' {
     interface User {
@@ -66,7 +63,7 @@ export const authConfig: NextAuthOptions = {
 
                 if(role === 'staff'){
                     const staffMember = await db.query.staff.findFirst({
-                        where: (staff, {eq}) => eq(staff.email, credentials.email);
+                        where: (staff, {eq}) => eq(staff.email, credentials.email)
                     });
 
                     if(!staffMember){
@@ -157,7 +154,7 @@ export const authConfig: NextAuthOptions = {
 
     pages: {
         signIn: '/auth/signin',
-        signUp: '/auth/signup',
+        signOut: '/auth/signout',
         error: '/auth/error'
     },
 
