@@ -2,6 +2,7 @@ import { initTRPC, TRPCError } from '@trpc/server';
 // import superjson from 'superjson';
 import { ZodError } from 'zod';
 import type { Context } from './context';
+import { staff } from '@/drizzle/schema';
 
 const t = initTRPC.context<Context>().create({
   // transformer: superjson,
@@ -20,7 +21,7 @@ const t = initTRPC.context<Context>().create({
 export const router = t.router;
 export const publicProcedure = t.procedure;
 
-// Middleware за проверка дали потребителят е автентикиран
+// Middleware за проверка дали потребителят е логнат
 const isAuthed = t.middleware(({ ctx, next }) => {
   if (!ctx.session?.user) {
     throw new TRPCError({ 
@@ -30,12 +31,13 @@ const isAuthed = t.middleware(({ ctx, next }) => {
   }
   return next({
     ctx: {
-      session: ctx.session,
+      ...ctx,
       user: ctx.session.user,
     },
   });
 });
 
+// Middleware за проверка дали потребителят е собственик на бизнеса
 const isBusinessOwner = t.middleware(async({ctx, next})=>{
   if(!ctx.session?.user){
     throw new TRPCError({
@@ -44,31 +46,60 @@ const isBusinessOwner = t.middleware(async({ctx, next})=>{
     });
   };
 
-  const staff = await ctx.db.query.staff.findFirst({
-    where: (staff, {eq, and})=>
-      and(
-        eq(staff.email, ctx.session.user.email!),
-        eq(staff.role, "owner")
-      ),
-      with:{
-        business: true,
-      }
+  if(ctx.session.user.role !== 'owner'){
+    throw new TRPCError({ 
+      code: 'FORBIDDEN',
+      message: 'You do not have right!'
+    });
+  }
+
+  const business = await ctx.db.business.findFirst({
+    where: (business, {eq })=> eq(business.id, ctx.session.user.businessId),
   });
 
-  if(!staff){
+  if(!business){
     throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: 'You do not have permission to access this resource.',
+      code: 'NOT_FOUND',
+      message: 'No such business.',
     });
   };
 
   return next ({
     ctx: {
       ...ctx,
-      business: staff.business,
-      staff,
+      business,
     }
   })
+});
+
+// Middleware за проверка дали потребителят е служител
+const isStaff = t.middleware(async({ctx, next})=>{
+  if(!ctx.session?.user){
+    throw new TRPCError ({code: 'UNAUTHORIZED',})
+  };
+
+  if(ctx.session.user.role !== 'staff' && ctx.session.user.role !== 'owner'){
+    throw new TRPCError({ 
+      code: 'FORBIDDEN',
+      message: 'Staff only!'
+    });
+  };
+
+  let staffMember = null;
+
+  if(ctx.session.user.role === 'staff'){
+    staffMember = await ctx.db.query.staff.findFirst({
+      where: (staff, {eq})=> eq(staff.id, ctx.session.user.id),
+    })
+  };
+
+  return next({
+    ctx: {
+      ...ctx,
+      staff: staffMember
+    }
+  })
+
 })
 
 export const protectedProcedure = t.procedure.use(isAuthed);
