@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, publicProcedure } from "../trpc";
+import { router, publicProcedure, protectedProcedure } from "../trpc";
 import db from "@/drizzle/db";
 import { registerBusinessSchema } from "@/lib/validators/business";
 import bcrypt from 'bcryptjs';
@@ -32,7 +32,7 @@ export const authRouter = router({
       const hashedPassword = await bcrypt.hash(input.password, 10);
 
       const [business] = await db.insert(businesses).values({
-        name: input.businessName,
+          name: input.businessName,
           email: input.email,
           phone: input.phone,
           address: input.address,
@@ -40,7 +40,7 @@ export const authRouter = router({
           status: 'trial',
           subscriptionTier: 'basic',
           subscriptionEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 дни trial
-          maxStaff: 1,
+          maxStaff: 3,
           maxClients: 100,
           smsCredits: 50,
           settings: {
@@ -68,6 +68,74 @@ export const authRouter = router({
         message: "Business successfuly created."
       }
     }),
+
+    registerNewStaffMember: protectedProcedure
+    .input(registerStaffSchema)
+    .mutation(
+      async({ctx, input})=>{
+
+        if(ctx.session.user.role !== 'owner'){
+          throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'You do not have permtions to registert staff member.',
+          });
+        };
+
+        const existingStaffMember = await db.query.staff.findFirst({
+          where: (staff, {eq, and})=>
+            and(
+              eq(staff.email, input.email),
+              eq(staff.businessId, ctx.session.user.businessId)
+            )
+        });
+
+        if (existingStaffMember) {
+          throw new TRPCError({
+            code: 'CONFLICT',
+            message: 'Staff member already exist.',
+          });
+        };
+
+        // Провери лимита за служители
+        const business = await db.query.business.findFirst({
+          where: (businesses, {eq})=> eq(businesses.id, ctx.session.user.businessId)
+        });
+
+        const staffCount = await db.query.staff.findMany({
+          where:(staff, {eq})=> eq(staff.businessId, ctx.session.user.businessId!)
+        });
+
+        if(staffCount.length >= (business?.max_staff || 3)){
+          throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Reached limit.',
+          });
+        };
+
+        const hashedPassword = await bcrypt.hash(input.password, 10);
+
+        const [staffMember] = await db
+        .insert(staff)
+        .values({
+          businessId: ctx.session.user.businessId!,
+          email: input.email,
+          name: input.name,
+          phone: input.phone,
+          role: input.role,
+          isActive: true,
+          specialties: input.specialties,
+          workingDays: input.workingDays,
+          workingHours: input.workingHours,
+          commission: input.commission,
+        })
+        .returning();
+
+        return {
+          success: true,
+          staffId: staffMember.id,
+          message: "Staff member register successfuly."
+        }
+    })
 
   // login client
 

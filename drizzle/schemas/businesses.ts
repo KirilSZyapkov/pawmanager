@@ -25,7 +25,7 @@ export const businesses = pgTable('businesses', {
   status: businessStatusEnum('status').default('trial'),
   subscriptionTier: subscriptionTierEnum('subscription_tier').default('basic'),
   subscriptionEndsAt: timestamp('subscription_ends_at'),
-  maxStaff: integer('max_staff').default(1),
+  maxStaff: integer('max_staff').default(3),
   maxClients: integer('max_clients').default(100),
   smsCredits: integer('sms_credits').default(0),
   settings: jsonb('settings').default({}),
