@@ -2,7 +2,7 @@ import { initTRPC, TRPCError } from '@trpc/server';
 // import superjson from 'superjson';
 import { ZodError } from 'zod';
 import type { Context } from './context';
-import { staff } from '@/drizzle/schema';
+import { clients, staff } from '@/drizzle/schema';
 
 const t = initTRPC.context<Context>().create({
   // transformer: superjson,
@@ -100,7 +100,42 @@ const isStaff = t.middleware(async({ctx, next})=>{
     }
   })
 
+});
+
+// Middleware за проверка дали потребителят е клиент
+const isClient = t.middleware(async ({ctx, next})=>{
+  if(!ctx.session?.user){
+    throw new TRPCError ({code: 'UNAUTHORIZED',})
+  };
+
+  if(ctx.session.user.role !== 'client'){
+    throw new TRPCError({ 
+      code: 'FORBIDDEN',
+      message: 'Please login!'
+    });
+  };
+
+  const client = await ctx.db.query.clients.findFirst({
+    where: (clients, {eq})=> eq(clients.id, ctx.session.user.id)
+  });
+
+  if (!client) {
+    throw new TRPCError({ 
+      code: 'NOT_FOUND',
+      message: 'Client not found.'
+    });
+  };
+
+  return next({
+    ctx: {
+      ...ctx,
+      client
+    }
+  })
+
 })
 
 export const protectedProcedure = t.procedure.use(isAuthed);
 export const businessProcedure = t.procedure.use(isBusinessOwner);
+export const staffProcedure = t.procedure.use(isStaff);
+export const clientProcedure = t.procedure.use(isClient);
