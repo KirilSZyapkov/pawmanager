@@ -95,7 +95,90 @@ export const clientRouter = router({
 
             return client;
         }
-    )
+    ),
+
+    registerNewClientAdmin: businessProcedure
+    .input(registerClientSchemaAdmin)
+    .mutation(
+      async ({ ctx, input }) => {
+        if (ctx.session?.user.role !== 'owner' && ctx.session?.user.role !== 'staff') {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'You do not have permtions to registert new clients.',
+          });
+        };
+
+        const existingClient = await db.query.clients.findFirst({
+          where: (clients, { eq, and }) =>
+            and(
+              eq(clients.phone, input.phone),
+              eq(clients.businessId, ctx.session?.user.businessId!)
+            )
+        });
+
+        if (existingClient) {
+          throw new TRPCError({
+            code: 'CONFLICT',
+            message: 'Client already exist.',
+          });
+        };
+
+        const business = await db.query.businesses.findFirst({
+          where: (businesses, { eq }) => eq(businesses?.id, ctx.session?.user.businessId!)
+        });
+
+        const clientCount = await db.query.clients.findMany({
+          where: (clients, { eq }) => eq(clients.businessId, ctx.session?.user.businessId!)
+        });
+
+
+        if (clientCount.length >= (business?.maxClients || 100)) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Reached limit.',
+          });
+        };
+
+        const [client] = await db
+          .insert(clients)
+          .values({
+            businessId: ctx.session.user.businessId!,
+            name: input.name,
+            email: input.email,
+            phone: input.phone,
+            address: input.address,
+            city: input.city,
+            howDidYouFindUs: input.howDidYouFindUs,
+            notes: input.notes,
+            smsConsent: input.smsConsent ?? true,
+            emailConsent: input.emailConsent ?? false,
+          })
+          .returning();
+
+        if (input.pet) {
+          await db.insert(pets).values({
+            businessId: ctx.session.user.businessId!,
+            clientId: client.id,
+            name: input.pet.name,
+            species: input.pet.species,
+            breed: input.pet.breed,
+            color: input.pet.color,
+            gender: input.pet.gender,
+            birthDate: input.pet.birthDate,
+            weight: input.pet.weight,
+            allergies: input.pet.allergies,
+            medications: input.pet.medications,
+            medicalConditions: input.pet.medicalConditions,
+            behaviorNotes: input.pet.behaviorNotes,
+          });
+        };
+
+        return {
+          success: true,
+          clientId: client.id,
+          message: 'Client registert sucessfuly.'
+        };
+    }),
 
 
 
