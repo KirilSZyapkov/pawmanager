@@ -11,5 +11,4 @@ export const registerClientSchema = z.object({
   notes: z.string().optional(),
   smsConsent: z.boolean().default(true),
   emailConsent: z.boolean().default(false),
-  pet: petRegistrationSchema.optional(),
 });

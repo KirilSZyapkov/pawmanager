@@ -26,6 +26,6 @@ export const registerBusinessSchema = z.object({
   logo: z.string().url().optional().nullable(),
   website: z.string().url().max(255).optional().nullable(),
   timezone: z.string().max(50).default('Europe/Sofia'),
-  settings: businessSettingsSchema.default({}),
+  settings: businessSettingsSchema
 });
 

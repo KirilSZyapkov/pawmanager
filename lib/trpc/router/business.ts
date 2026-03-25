@@ -1,9 +1,8 @@
-import { z } from "zod";
-import { TRPCError } from "@trpc/server";
+
 import { router, businessProcedure } from "../trpc";
 import db from "@/drizzle/db";
-import { appointments, businesses, clients, staff } from "@/drizzle/schema";
-import { businessSchema } from "@/lib/validators/business";
+import { businesses } from "@/drizzle/schema";
+import { registerBusinessSchema } from "@/lib/validators/business";
 import { eq } from "drizzle-orm";
 
 export const businessRouter = router({
@@ -13,7 +12,7 @@ export const businessRouter = router({
   }),
 
   updateProfile: businessProcedure
-    .input(businessSchema.partial())
+    .input(registerBusinessSchema.partial())
     .mutation(async ({ ctx, input }) => {
       const [updated] = await db.update(businesses).set({ ...input, updatedAt: new Date() })
         .where(eq(businesses.id, ctx.business.id))
