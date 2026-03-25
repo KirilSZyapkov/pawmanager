@@ -218,43 +218,43 @@ export const authRouter = router({
           clientId: client.id,
           message: 'Client registert sucessfuly.'
         };
-      }),
-})
-// login client
+    }),
 
-clientLogin: publicProcedure
-  .input(
-    z.object({
-      phone: z.string().min(10, "Phone number must be at least 10 characters long"),
-      code: z.string().min(6, "Code must be at least 6 characters long"),
-    })
-  )
-  .mutation(async ({ input }) => {
-    // Check if the client exists
-    const client = await db.query.clients.findFirst({
-      where: (clients, { eq }) => eq(clients.phone, input.phone),
-    });
+  // login client
 
-    if (!client) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Client not found"
-      })
-    };
-
-    // да верифицирам СМС кода
-    return client;
-  }),
-
-  sendClientSMSCode: publicProcedure
+  clientLogin: publicProcedure
     .input(
       z.object({
         phone: z.string().min(10, "Phone number must be at least 10 characters long"),
+        code: z.string().min(6, "Code must be at least 6 characters long"),
       })
     )
     .mutation(async ({ input }) => {
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      // да запиша кода в базата данни и да го изпратя на клиента чрез СМС
-      return { success: true };
-    })
+      // Check if the client exists
+      const client = await db.query.clients.findFirst({
+        where: (clients, { eq }) => eq(clients.phone, input.phone),
+      });
+
+      if (!client) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Client not found"
+        })
+      };
+
+      // да верифицирам СМС кода
+      return client;
+    }),
+
+    sendClientSMSCode: publicProcedure
+      .input(
+        z.object({
+          phone: z.string().min(10, "Phone number must be at least 10 characters long"),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        // да запиша кода в базата данни и да го изпратя на клиента чрез СМС
+        return { success: true };
+      })
 })
