@@ -183,7 +183,7 @@ export const clientRouter = router({
     updateClientRecord: businessProcedure
     .input(z.object({id: z.uuid(), data:registerClientSchemaAdmin.partial() }))
     .mutation(
-        async({ctx. input})=>{
+        async({ctx, input})=> {
             const [updated] = await db.updated(clients)
             .set({
                 ...input.data,
@@ -195,12 +195,28 @@ export const clientRouter = router({
                     eq(clients.businessId, ctx.session.user.businessId)
                 )
             )
-            .returning()
+            .returning();
 
             return updated;
         }
-    ),//end mutation
+    ),
 
+    deleteClientRecord: businessProcedure
+    .input(z.object({id:z.uui()}))
+    .mutation(
+        async({ctx, input})=>{
+            const [deleted] = await db.detele(clients)
+            .where(
+                and(
+                    eq(clients.id, input.id),
+                    eq(clients.businessId, ctx.session.user.businessId)
+                )
+            )
+            .returning();
+
+            return deleted;
+        }
+    )//end mutatioin
 
 
 
