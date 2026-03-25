@@ -7,7 +7,7 @@ export const appointmentSchema = z.object({
   startTime: z.date(),
   endTime: z.date(),
   status: z.enum(['pending', 'confirmed', 'in_progress', 'completed', 'cancelled', 'no_show']).default('pending'),
-  price: z.number().min(0).optional(),
+  price: z.string().min(0),
   notes: z.string().optional(),
   staffNotes: z.string().optional(),
   isFirstVisit: z.boolean().default(false),

@@ -5,6 +5,7 @@ import db from "@/drizzle/db";
 import { registerBusinessSchema } from "@/lib/validators/business";
 import bcrypt from 'bcryptjs';
 import { businesses, clients, pets, staff } from "@/drizzle/schema";
+import { staffSchema } from "@/lib/validators/staff";
 
 export const authRouter = router({
   // Get the current user's session
@@ -52,6 +53,7 @@ export const authRouter = router({
 
       const [owner] = await db.insert(staff).values({
         businessId: business.id,
+        password: hashedPassword,
         email: input.email,
         name: input.ownerName,
         phone: input.phone,
@@ -70,7 +72,7 @@ export const authRouter = router({
     }),
 
   registerNewStaffMember: protectedProcedure
-    .input(registerStaffSchema)
+    .input(staffSchema)
     .mutation(
       async ({ ctx, input }) => {
 
@@ -118,6 +120,7 @@ export const authRouter = router({
           .insert(staff)
           .values({
             businessId: ctx.session.user.businessId!,
+            password: hashedPassword,
             email: input.email,
             name: input.name,
             phone: input.phone,

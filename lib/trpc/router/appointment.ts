@@ -81,8 +81,8 @@ export const appointmentRouter = router({
             },
             service: true,
             staff: true,
-            photo: true,
-            payment: true,
+            // photo: true,
+            // payment: true,
           },
         });
 
@@ -121,7 +121,7 @@ export const appointmentRouter = router({
           })
         };
 
-        const [newAppointmentRecord] = await db.insert(appointments).values({ ...input, businessId: ctx.business.id }).returning();
+        const [newAppointmentRecord] = await db.insert(appointments).values({ ...input, businessId: ctx.session?.user.businessId! }).returning();
 
         return newAppointmentRecord;
       }),
@@ -135,7 +135,8 @@ export const appointmentRouter = router({
     )
     .mutation(
       async ({ ctx, input }) => {
-        const [updatedAppointmentRecord] = await db.update(appointments).set({ ...input.data, updatedAt: new Date() })
+        const [updatedAppointmentRecord] = await db.update(appointments)
+          .set({ ...input.data, updatedAt: new Date() })
           .where(
             and(
               eq(appointments.id, input.id),
@@ -236,7 +237,7 @@ export const appointmentRouter = router({
             const slotEnd = new Date(currentTime.getTime() + 30 * 60000); // +30min
 
             const isBooked = bookedAppointments.some(
-              (apt) => apt.staffId === staff.id && apt.startTime < slotEnd && new Date(apt.startTime.getTime() + apt.service?.duratio * 60000) > currentTime
+              (apt) => apt.staffId === staff.id && apt.startTime < slotEnd && new Date(apt.startTime.getTime() + apt.endTime.getTime() * 60000) > currentTime
             );
 
             if (!isBooked) {
