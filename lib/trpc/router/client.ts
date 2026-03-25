@@ -180,7 +180,26 @@ export const clientRouter = router({
         };
     }),
 
+    updateClientRecord: businessProcedure
+    .input(z.object({id: z.uuid(), data:registerClientSchemaAdmin.partial() }))
+    .mutation(
+        async({ctx. input})=>{
+            const [updated] = await db.updated(clients)
+            .set({
+                ...input.data,
+                updatedAt: new Date(),
+            })
+            .where(
+                and(
+                    eq(clients.id, input.id),
+                    eq(clients.businessId, ctx.session.user.businessId)
+                )
+            )
+            .returning()
 
+            return updated;
+        }
+    ),//end mutation
 
 
 
