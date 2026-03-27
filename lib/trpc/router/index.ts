@@ -4,12 +4,12 @@ import { businessRouter } from './business';
 import { staffRouter } from './staff';
 import { clientRouter } from './client';
 import { petRouter } from './pet';
-import { serviceRouter } from './service';
+// import { serviceRouter } from './service';
 import { appointmentRouter } from './appointment';
-import { photoRouter } from './photo';
-import { paymentRouter } from './payment';
+// import { photoRouter } from './photo';
+// import { paymentRouter } from './payment';
 import { notificationRouter } from './notification';
-import { dashboardRouter } from './dashboard';
+// import { dashboardRouter } from './dashboard';
 
 export const appRouter = router({
   auth: authRouter,
@@ -17,12 +17,12 @@ export const appRouter = router({
   staff: staffRouter,
   client: clientRouter,
   pet: petRouter,
-  service: serviceRouter,
+  // service: serviceRouter,
   appointment: appointmentRouter,
-  photo: photoRouter,
-  payment: paymentRouter,
+  // photo: photoRouter,
+  // payment: paymentRouter,
   notification: notificationRouter,
-  dashboard: dashboardRouter,
+  // dashboard: dashboardRouter,
 });
 
 export type AppRouter = typeof appRouter;

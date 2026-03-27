@@ -8,7 +8,6 @@ export const notificationSchema = z.object({
   subject: z.string().max(255).optional(),
   content: z.string(),
   scheduledFor: z.date().optional(),
-  metadata: z.record(z.any()).optional(),
 });
 
 export const reminderTemplateSchema = z.object({

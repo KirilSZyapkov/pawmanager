@@ -2,6 +2,8 @@ import {z} from 'zod';
 import { TRPCError } from '@trpc/server';
 import {router, businessProcedure} from '../trpc';
 import db from '@/drizzle/db';
+import { notificationSchema } from '@/lib/validators/notification';
+import { notifications } from '@/drizzle/schema';
 
 
 export const notificationRouter = router({
@@ -19,7 +21,7 @@ listAllNotifications: businessProcedure
   async ({ctx, input})=>{
     let query = await db.query.notifications.findMany({
       where: (notifications, {and, eq})=>{
-        const conditions = [eq(notifications.businessId, ctx.session?.user.businessId)];
+        const conditions = [eq(notifications.businessId, ctx.session?.user.businessId!)];
 
         if(input.status) {
           conditions.push(eq(notifications.status, input.status))
@@ -45,10 +47,27 @@ listAllNotifications: businessProcedure
     })
     return query;
   }
-)//end query
-  
+),
 
+createNewNotification: businessProcedure
+.input(notificationSchema)
+.mutation(
+  async({ctx, input})=>{
+    const [notification] = await db.insert(notifications)
+    .values({
+      ...input,
+      businessId: ctx.session?.user.businessId!,
+      status: 'pending'
+    }).returning();
 
+    if(!input.scheduledFor){
+      //TODO... да добавя изпращане на нотификация
+      return null;
+    }
+
+    return notification;
+  }
+)//end mutation
 
 
 
