@@ -1,4 +1,4 @@
-import {inferRouterInputs inferRouterOutputs} from "@trpc/server";
+import {inferRouterInputs, inferRouterOutputs} from "@trpc/server";
 import { AppRouter, appRouter } from "./router";
 
 export {appRouter};

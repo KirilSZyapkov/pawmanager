@@ -7,3 +7,5 @@ export * from "./schemas/services";
 export * from "./schemas/staff";
 export * from "./schemas/subscriptions";
 export * from "./schemas/notifications";
+export * from "./schemas/payments";
+export * from "./schemas/reminder";
