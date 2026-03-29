@@ -7,6 +7,7 @@ import { trpc } from "@/lib/trpc/client";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import {signIn} from "next-auth/react";
 
 type FormValues = z.infer<typeof registerBusinessSchema>;
 
@@ -28,8 +29,19 @@ export default function RegisterBusinessForm() {
   });
 
   const registerMutation = trpc.auth.registerNewBusibess.useMutation({
-    onSuccess: () => {
-      router.push("/auth/signin");
+    onSuccess: async (_, variables) => {
+      const result = await signIn("credentials",{
+        redirect: false,
+        email: variables.email,
+        password: variables.password,
+        role: "owner"
+      });
+
+      if (result?.error){
+        setServerError("Регистрацията е успешна, но входът се провали.");
+        return;
+      };
+      router.push("/dashboard");
     },
     onError: (error) => {
       // if (error.data?.zodError?.fieldErrors) {

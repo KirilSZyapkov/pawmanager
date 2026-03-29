@@ -53,8 +53,8 @@ const isBusinessOwner = t.middleware(async({ctx, next})=>{
     });
   }
 
-  const business = await ctx.db.business.findFirst({
-    where: (business, {eq })=> eq(business.id, ctx.session.user.businessId),
+  const business = await ctx.db.query.businesses.findFirst({
+    where: (business, {eq })=> eq(business.id, ctx.session?.user.businessId!),
   });
 
   if(!business){
@@ -89,7 +89,7 @@ const isStaff = t.middleware(async({ctx, next})=>{
 
   if(ctx.session.user.role === 'staff'){
     staffMember = await ctx.db.query.staff.findFirst({
-      where: (staff, {eq})=> eq(staff.id, ctx.session.user.id),
+      where: (staff, {eq})=> eq(staff.id, ctx.session?.user.id!),
     })
   };
 
@@ -116,7 +116,7 @@ const isClient = t.middleware(async ({ctx, next})=>{
   };
 
   const client = await ctx.db.query.clients.findFirst({
-    where: (clients, {eq})=> eq(clients.id, ctx.session.user.id)
+    where: (clients, {eq})=> eq(clients.id, ctx.session?.user.id!)
   });
 
   if (!client) {

@@ -8,6 +8,7 @@ export const clients = pgTable('clients', {
   businessId: uuid('business_id').references(() => businesses.id, { onDelete: 'cascade' }).notNull(),
   email: varchar('email', { length: 255 }),
   name: varchar('name', { length: 255 }).notNull(), // Коригирано
+  password: text('password').notNull(),
   phone: varchar('phone', { length: 50 }).notNull(),
   address: text('address'),
   city: varchar('city', { length: 100 }),

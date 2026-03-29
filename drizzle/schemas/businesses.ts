@@ -13,6 +13,7 @@ export const businesses = pgTable('businesses', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }).notNull().unique(),
+  password: text('password').notNull(),
   phone: varchar('phone', { length: 50 }).notNull(),
   address: text('address').notNull(),
   city: varchar('city', { length: 100 }).notNull(),

@@ -1,6 +1,7 @@
-import {NextAuthOptions} from "next-auth";
+import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import db from "@/drizzle/db";
+import bcrypt from "bcryptjs";
 
 declare module 'next-auth' {
     interface User {
@@ -32,25 +33,34 @@ export const authConfig: NextAuthOptions = {
         CredentialsProvider({
             name: 'credentials',
             credentials: {
-                email: {label: 'Email', type: 'email'},
-                password: {label: 'Password', type: 'password'},
-                role: {label: 'Role', type:'role'}
+                email: { label: 'Email', type: 'email' },
+                password: { label: 'Password', type: 'password' },
+                role: { label: 'Role', type: 'role' }
             },
             async authorize(credentials) {
-                if(!credentials?.email || !credentials?.password) {
-                    throw new Error ("Моля въведете емаил и парола");
+                if (!credentials?.email || !credentials?.password) {
+                    throw new Error("Моля въведете емаил и парола");
                 };
 
                 const role = credentials.role as "owner" | "staff" | "client";
 
-                if(role === 'owner'){
+                if (role === 'owner') {
                     const business = await db.query.businesses.findFirst({
-                        where: (businesses, {eq})=> eq(businesses.email, credentials.email)
+                        where: (businesses, { eq }) => eq(businesses.email, credentials.email)
                     });
 
-                    if(!business){
-                        throw new Error ("Invalid credentials!");
+                    if (!business || !business.password) {
+                        throw new Error("Invalid credentials!");
                     };
+
+                    const isValidPassword = await bcrypt.compare(
+                        credentials.password,
+                        business.password
+                    );
+
+                    if (!isValidPassword) {
+                        throw new Error("Invalid credentials!");
+                    }
 
                     return {
                         id: business.id,
@@ -61,13 +71,13 @@ export const authConfig: NextAuthOptions = {
                     };
                 };
 
-                if(role === 'staff'){
+                if (role === 'staff') {
                     const staffMember = await db.query.staff.findFirst({
-                        where: (staff, {eq}) => eq(staff.email, credentials.email)
+                        where: (staff, { eq }) => eq(staff.email, credentials.email)
                     });
 
-                    if(!staffMember){
-                        throw new Error ("Invalid credentials!");
+                    if (!staffMember) {
+                        throw new Error("Invalid credentials!");
                     };
 
                     return {
@@ -91,35 +101,35 @@ export const authConfig: NextAuthOptions = {
         CredentialsProvider({
             id: 'client-code',
             name: 'client-code',
-            credentials:{
-                phone: {label: 'Phone', type: 'tel'},
-                code: {label: 'Code', type: 'text'}
+            credentials: {
+                phone: { label: 'Phone', type: 'tel' },
+                code: { label: 'Code', type: 'text' }
             },
 
-            async authorize(credentials){
-                if(!credentials?.phone || !credentials?.code){
+            async authorize(credentials) {
+                if (!credentials?.phone || !credentials?.code) {
                     throw new Error("Invalid credentials!");
                 };
 
                 const client = await db.query.clients.findFirst({
-                    where: (clients, {eq})=> eq(clients.phone, credentials.phone)
+                    where: (clients, { eq }) => eq(clients.phone, credentials.phone)
                 });
 
-                if(!client){
+                if (!client) {
                     throw new Error("Invalid credentials!");
                 };
 
-                if(credentials.code !== '123456') {
+                if (credentials.code !== '123456') {
                     throw new Error("Invalid credentials!");
                 };
 
                 return {
-                id: client.id,
-                name: client.name,
-                email: client.email || undefined,
-                phone: client.phone,
-                role: 'client',
-                businessId: client.businessId,
+                    id: client.id,
+                    name: client.name,
+                    email: client.email || undefined,
+                    phone: client.phone,
+                    role: 'client',
+                    businessId: client.businessId,
                 };
 
             }
@@ -127,8 +137,8 @@ export const authConfig: NextAuthOptions = {
     ],
 
     callbacks: {
-        async jwt({token, user}) {
-            if(user) {
+        async jwt({ token, user }) {
+            if (user) {
                 token.id = user.id;
                 token.role = user.role;
                 token.businessId = user.businessId;
@@ -139,8 +149,8 @@ export const authConfig: NextAuthOptions = {
             return token;
         },
 
-        async session ({session, token}){
-            if(token && session.user) {
+        async session({ session, token }) {
+            if (token && session.user) {
                 session.user.id = token.id as string;
                 session.user.role = token.role as 'owner' | 'staff' | 'client';
                 session.user.businessId = token.businessId as string;

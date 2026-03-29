@@ -34,6 +34,7 @@ export const authRouter = router({
 
       const [business] = await db.insert(businesses).values({
         name: input.businessName,
+        password: hashedPassword,
         email: input.email,
         phone: input.phone,
         address: input.address,

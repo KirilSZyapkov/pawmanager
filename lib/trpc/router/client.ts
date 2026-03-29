@@ -8,6 +8,7 @@ import { registerClientSchema } from '@/lib/validators/client';
 import { appointments, businesses, photos } from '@/drizzle/schema';
 import { payments } from '@/drizzle/schemas/payments';
 import { SQL } from 'drizzle-orm';
+import bcrypt from 'bcryptjs';
 
 export const clientRouter = router({
     getAllClientsRecords: businessProcedure
@@ -146,12 +147,15 @@ export const clientRouter = router({
                     });
                 };
 
+                const hashedPassword = await bcrypt.hash(input.password, 10);
+
                 const [client] = await db
                     .insert(clients)
                     .values({
                         businessId: ctx.session.user.businessId!,
                         name: input.name,
                         email: input.email,
+                        password: hashedPassword,
                         phone: input.phone,
                         address: input.address,
                         city: input.city,
