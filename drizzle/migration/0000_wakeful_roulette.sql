@@ -4,6 +4,8 @@ CREATE TYPE "public"."pet_gender" AS ENUM('male', 'female');--> statement-breakp
 CREATE TYPE "public"."pet_size" AS ENUM('tiny', 'small', 'medium', 'large', 'xlarge');--> statement-breakpoint
 CREATE TYPE "public"."user_role" AS ENUM('owner', 'admin', 'manager', 'groomer', 'receptionist');--> statement-breakpoint
 CREATE TYPE "public"."subscription_tier" AS ENUM('basic', 'pro', 'enterprise');--> statement-breakpoint
+CREATE TYPE "public"."notification_status" AS ENUM('pending', 'sent', 'failed');--> statement-breakpoint
+CREATE TYPE "public"."notification_type" AS ENUM('sms', 'email', 'whatsapp');--> statement-breakpoint
 CREATE TABLE "appointments" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"business_id" uuid NOT NULL,
@@ -42,7 +44,7 @@ CREATE TABLE "businesses" (
 	"status" "business_status" DEFAULT 'trial',
 	"subscription_tier" "subscription_tier" DEFAULT 'basic',
 	"subscription_ends_at" timestamp,
-	"max_staff" integer DEFAULT 1,
+	"max_staff" integer DEFAULT 3,
 	"max_clients" integer DEFAULT 100,
 	"sms_credits" integer DEFAULT 0,
 	"settings" jsonb DEFAULT '{}'::jsonb,
@@ -129,6 +131,7 @@ CREATE TABLE "staff" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"business_id" uuid NOT NULL,
 	"email" varchar(255) NOT NULL,
+	"password" text NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"phone" varchar(50),
 	"role" "user_role" DEFAULT 'groomer',
@@ -162,6 +165,23 @@ CREATE TABLE "subscriptions" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "notifications" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"business_id" uuid NOT NULL,
+	"client_id" uuid,
+	"appointment_id" uuid,
+	"type" "notification_type" NOT NULL,
+	"status" "notification_status" DEFAULT 'pending',
+	"to" varchar(255) NOT NULL,
+	"subject" varchar(255),
+	"content" text NOT NULL,
+	"scheduled_for" timestamp,
+	"sent_at" timestamp,
+	"error_message" text,
+	"metadata" jsonb,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 ALTER TABLE "appointments" ADD CONSTRAINT "appointments_business_id_businesses_id_fk" FOREIGN KEY ("business_id") REFERENCES "public"."businesses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "appointments" ADD CONSTRAINT "appointments_pet_id_pets_id_fk" FOREIGN KEY ("pet_id") REFERENCES "public"."pets"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "appointments" ADD CONSTRAINT "appointments_service_id_services_id_fk" FOREIGN KEY ("service_id") REFERENCES "public"."services"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -175,6 +195,9 @@ ALTER TABLE "photos" ADD CONSTRAINT "photos_pet_id_pets_id_fk" FOREIGN KEY ("pet
 ALTER TABLE "services" ADD CONSTRAINT "services_business_id_businesses_id_fk" FOREIGN KEY ("business_id") REFERENCES "public"."businesses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "staff" ADD CONSTRAINT "staff_business_id_businesses_id_fk" FOREIGN KEY ("business_id") REFERENCES "public"."businesses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_business_id_businesses_id_fk" FOREIGN KEY ("business_id") REFERENCES "public"."businesses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_business_id_businesses_id_fk" FOREIGN KEY ("business_id") REFERENCES "public"."businesses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_client_id_clients_id_fk" FOREIGN KEY ("client_id") REFERENCES "public"."clients"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_appointment_id_appointments_id_fk" FOREIGN KEY ("appointment_id") REFERENCES "public"."appointments"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "appointment_business_date_idx" ON "appointments" USING btree ("business_id","start_time");--> statement-breakpoint
 CREATE INDEX "appointment_staff_date_idx" ON "appointments" USING btree ("staff_id","start_time");--> statement-breakpoint
 CREATE INDEX "appointment_pet_idx" ON "appointments" USING btree ("pet_id");--> statement-breakpoint
@@ -188,4 +211,7 @@ CREATE INDEX "photo_appointment_idx" ON "photos" USING btree ("appointment_id");
 CREATE INDEX "service_business_idx" ON "services" USING btree ("business_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "staff_business_email_idx" ON "staff" USING btree ("business_id","email");--> statement-breakpoint
 CREATE INDEX "subscription_business_idx" ON "subscriptions" USING btree ("business_id");--> statement-breakpoint
-CREATE INDEX "subscription_stripe_customer_idx" ON "subscriptions" USING btree ("stripe_customer_id");
+CREATE INDEX "subscription_stripe_customer_idx" ON "subscriptions" USING btree ("stripe_customer_id");--> statement-breakpoint
+CREATE INDEX "notification_business_idx" ON "notifications" USING btree ("business_id");--> statement-breakpoint
+CREATE INDEX "notification_scheduled_idx" ON "notifications" USING btree ("scheduled_for");--> statement-breakpoint
+CREATE INDEX "notification_status_idx" ON "notifications" USING btree ("status");
