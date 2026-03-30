@@ -9,14 +9,18 @@ export async function requireUser(){
         redirect("/auth/signin");
     };
 
-    return session;
+    return session.user;
 }
 
 export async function requireOwner() {
     const user = await requireUser();
 
-    if(user.role !== "owner"){
-        redirect("/");
+    if (user.role === "client") {
+        redirect("/client");
+    }
+
+    if (user.role === "staff") {
+        redirect("/staff");
     }
 
     return user;
