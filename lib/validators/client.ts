@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const registerClientSchema = z.object({
   name: z.string().min(2, 'Името трябва да е поне 2 символа'),
-  email: z.string().email('Невалиден имейл адрес').optional().nullable(),
+  email: z.email('Невалиден имейл адрес'),
   password: z.string().min(8, 'Паролата трябва да е поне 8 символа'),
   phone: z.string().min(10, 'Невалиден телефонен номер'),
   slug: z.string().min(6),

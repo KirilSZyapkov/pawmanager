@@ -1,42 +1,42 @@
 "use client";
 
-import {useForm} from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { trpc } from "@/lib/trpc/client";
-import {useParams, useRouter} from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
-export default function ClientRegisterPage(){
-    const {slug} = useParams<{slug: string}>();
-    const router = useRouter();
+export default function ClientRegisterPage() {
+  const { slug } = useParams<{ slug: string }>();
+  const router = useRouter();
 
-    const mutation = trpc.client.registerClientPublic.useMutation({
-        onSuccess: ()=>{
-            router.push(`/b/${slug}/login`);
-        },
-    });
+  const mutation = trpc.client.registerClientPublic.useMutation({
+    onSuccess: () => {
+      router.push(`/b/${slug}/login`);
+    },
+  });
 
-    const {register, handleSubmit} = useForm();
+  const { register, handleSubmit } = useForm();
 
-    return (
-        <form
-            onSubmit={handleSubmit((data) =>
-                mutation.mutate({
-                ...data,
-                businessSlug: slug,
-                })
-            )}
-            className="max-w-md mx-auto p-6 space-y-4"
-            >
-            <input {...register("name")} placeholder="Име" />
-            <input {...register("phone")} placeholder="Телефон" />
-            <input
-                type="password"
-                {...register("password")}
-                placeholder="Парола"
-            />
+  return (
+    <form
+      onSubmit={handleSubmit((data) =>
+        mutation.mutate({
+          ...data,
+          businessSlug: slug,
+        })
+      )}
+      className="max-w-md mx-auto p-6 space-y-4"
+    >
+      <input {...register("name")} placeholder="Име" />
+      <input {...register("phone")} placeholder="Телефон" />
+      <input
+        type="password"
+        {...register("password")}
+        placeholder="Парола"
+      />
 
-            <button type="submit">
-                Регистрация
-            </button>
-        </form>
-    )
+      <button type="submit">
+        Регистрация
+      </button>
+    </form>
+  )
 }

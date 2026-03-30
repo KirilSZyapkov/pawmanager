@@ -91,7 +91,7 @@ export const authConfig: NextAuthOptions = {
 
                 if (role === 'client') {
                     
-                    const client = await ctx.db.query.clients.findFirst({
+                    const client = await db.query.clients.findFirst({
                         where: (clients, {eq})=> eq(clients.email, credentials.email)
                     });
 
