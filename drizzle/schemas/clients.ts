@@ -10,6 +10,7 @@ export const clients = pgTable('clients', {
   name: varchar('name', { length: 255 }).notNull(), // Коригирано
   password: text('password').notNull(),
   phone: varchar('phone', { length: 50 }).notNull(),
+  businessSlug: varchar('business_slug',{length: 255}).notNull(),
   address: text('address'),
   city: varchar('city', { length: 100 }),
   howDidYouFindUs: varchar('how_did_you_find_us', { length: 50 }),

@@ -3,6 +3,7 @@
 import { useForm } from "react-hook-form";
 import { trpc } from "@/lib/trpc/client";
 import { useParams, useRouter } from "next/navigation";
+import type {RegisterClientPublicInput} from "@/lib/validators/client";
 
 export default function ClientRegisterPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -14,7 +15,7 @@ export default function ClientRegisterPage() {
     },
   });
 
-  const { register, handleSubmit } = useForm();
+  const { register, handleSubmit } = useForm<RegisterClientPublicInput>();
 
   return (
     <form
@@ -28,6 +29,7 @@ export default function ClientRegisterPage() {
     >
       <input {...register("name")} placeholder="Име" />
       <input {...register("phone")} placeholder="Телефон" />
+      <input {...register("email")} placeholder="Имейл" />
       <input
         type="password"
         {...register("password")}

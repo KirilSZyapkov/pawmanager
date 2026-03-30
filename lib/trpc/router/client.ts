@@ -2,11 +2,10 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, businessProcedure, clientProcedure, publicProcedure } from '../trpc';
 import db from '@/drizzle/db';
-import { clients, pets } from '@/drizzle/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { clients } from '@/drizzle/schema';
+import { eq, and } from 'drizzle-orm';
 import { registerClientSchema } from '@/lib/validators/client';
-import { appointments, businesses, photos } from '@/drizzle/schema';
-import { payments } from '@/drizzle/schemas/payments';
+
 import { SQL } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
@@ -142,7 +141,7 @@ export const clientRouter = router({
     .mutation(
       async ({ input }) => {
         const business = await db.query.businesses.findFirst({
-          where: (businesses, { eq }) => eq(businesses.slug, input.slug)
+          where: (businesses, { eq }) => eq(businesses.slug, input.businessSlug)
         });
 
         if (!business) {
@@ -174,6 +173,7 @@ export const clientRouter = router({
           name: input.name,
           phone: input.phone,
           email: input.email!,
+          businessSlug: input.businessSlug,
           password: hashedPassword,
         }).returning();
 
@@ -183,6 +183,7 @@ export const clientRouter = router({
         }
       }
     ),
+
 
   updateClientRecord: businessProcedure
     .input(z.object({ id: z.uuid(), data: registerClientSchema.partial() }))
