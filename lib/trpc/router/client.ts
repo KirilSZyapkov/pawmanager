@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, businessProcedure, clientProcedure } from '../trpc';
+import { router, businessProcedure, clientProcedure, publicProcedure } from '../trpc';
 import db from '@/drizzle/db';
 import { clients, pets } from '@/drizzle/schema';
 import { eq, and, desc } from 'drizzle-orm';
@@ -105,91 +105,85 @@ export const clientRouter = router({
             }
         ),
 
-    registerNewClientAdmin: businessProcedure
-        .input(registerClientSchema)
-        .mutation(
-            async ({ ctx, input }) => {
-                if (ctx.session?.user.role !== 'owner' && ctx.session?.user.role !== 'staff') {
-                    throw new TRPCError({
-                        code: 'FORBIDDEN',
-                        message: 'You do not have permtions to registert new clients.',
-                    });
-                };
+    clientLogin: publicProcedure
+    .input(
+      z.object({
+        phone: z.string().min(10, "Phone number must be at least 10 characters long"),
+        password: z.string().min(6, "Password must be at least 6 characters long"),
+      })
+    )
+    .mutation(async ({ input }) => {
+      // Check if the client exists
+      const client = await db.query.clients.findFirst({
+        where: (clients, { eq }) => eq(clients.phone, input.phone),
+      });
 
-                const existingClient = await db.query.clients.findFirst({
-                    where: (clients, { eq, and }) =>
-                        and(
-                            eq(clients.phone, input.phone),
-                            eq(clients.businessId, ctx.session?.user.businessId!)
-                        )
+      if (!client || !client.password) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Invalid credentials"
+        })
+      };
+
+      const validPassword = await bcrypt.compare(input.password, client.password);
+
+      if (!validPassword) {
+        throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Invalid credentials",
+        });
+    }
+
+      return client;
+    }),
+
+    registerClientPublic: publicProcedure
+    .input(registerClientSchema)
+    .mutatioin(
+        async({ctx, input})=>{
+            const business = await db.query.businesses.findFirst({
+                where: (businesses, {eq})=> eq(businesses.slug, input.slug)
+            });
+
+            if(!business){
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Business not found",
                 });
+            };
 
-                if (existingClient) {
-                    throw new TRPCError({
-                        code: 'CONFLICT',
-                        message: 'Client already exist.',
-                    });
-                };
+            const existingClient = await db.query.clients.findFirst({
+                where: (clients, {eq, and})=>
+                and(
+                    eq(clients.phone, input.phone),
+                    eq(clients.businessId, business.id)
+                )
+            });
 
-                const business = await db.query.businesses.findFirst({
-                    where: (businesses, { eq }) => eq(businesses?.id, ctx.session?.user.businessId!)
+            if (existingClient) {
+                throw new TRPCError({ 
+                    code: "CONFLICT",
+                    message: "Client already exists",
                 });
+            };
 
-                const clientCount = await db.query.clients.findMany({
-                    where: (clients, { eq }) => eq(clients.businessId, ctx.session?.user.businessId!)
-                });
+            const hashedPassword = await bcrypt.hash(input.password, 10);
 
+            const [client] = await db.insert(clients).values({
+                businessId: business.id,
+                name: input.name,
+                phone: input.phone,
+                email: input.email,
+                password: hashedPassword,
+                isActive: true,
+            }). returning();
 
-                if (clientCount.length >= (business?.maxClients || 100)) {
-                    throw new TRPCError({
-                        code: 'FORBIDDEN',
-                        message: 'Reached limit.',
-                    });
-                };
-
-                const hashedPassword = await bcrypt.hash(input.password, 10);
-
-                const [client] = await db
-                    .insert(clients)
-                    .values({
-                        businessId: ctx.session.user.businessId!,
-                        name: input.name,
-                        email: input.email,
-                        password: hashedPassword,
-                        phone: input.phone,
-                        address: input.address,
-                        city: input.city,
-                        howDidYouFindUs: input.howDidYouFindUs,
-                        notes: input.notes,
-                        smsConsent: input.smsConsent ?? true,
-                        emailConsent: input.emailConsent ?? false,
-                    })
-                    .returning();
-                //TODO..
-                // if (input.pet) {
-                //   await db.insert(pets).values({
-                //     businessId: ctx.session.user.businessId!,
-                //     clientId: client.id,
-                //     name: input.pet.name,
-                //     species: input.pet.species,
-                //     breed: input.pet.breed,
-                //     color: input.pet.color,
-                //     gender: input.pet.gender,
-                //     birthDate: input.pet.birthDate,
-                //     weight: input.pet.weight,
-                //     allergies: input.pet.allergies,
-                //     medications: input.pet.medications,
-                //     medicalConditions: input.pet.medicalConditions,
-                //     behaviorNotes: input.pet.behaviorNotes,
-                //   });
-                // };
-
-                return {
-                    success: true,
-                    clientId: client.id,
-                    message: 'Client registert sucessfuly.'
-                };
-            }),
+            return {
+                success: true,
+                clientId: client.id
+            }
+        }
+    )//end mutation
 
     updateClientRecord: businessProcedure
         .input(z.object({ id: z.uuid(), data: registerClientSchema.partial() }))

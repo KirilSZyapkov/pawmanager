@@ -6,6 +6,7 @@ import { registerBusinessSchema } from "@/lib/validators/business";
 import bcrypt from 'bcryptjs';
 import { businesses, clients, pets, staff } from "@/drizzle/schema";
 import { staffSchema } from "@/lib/validators/staff";
+import { registerClientSchema } from "@/lib/validators/client";
 
 export const authRouter = router({
   // Get the current user's session
@@ -38,6 +39,7 @@ export const authRouter = router({
         email: input.email,
         phone: input.phone,
         address: input.address,
+        slug: input.businessName.toLowerCase().replace(/\s+/g, "-"),
         city: input.city,
         status: 'trial',
         subscriptionTier: 'basic',
@@ -141,33 +143,92 @@ export const authRouter = router({
         }
       }),
 
-  
-  // login client
+      registerNewClientAdmin: businessProcedure
+        .input(registerClientSchema)
+        .mutation(
+            async ({ ctx, input }) => {
+                if (ctx.session?.user.role !== 'owner' && ctx.session?.user.role !== 'staff') {
+                    throw new TRPCError({
+                        code: 'FORBIDDEN',
+                        message: 'You do not have permtions to registert new clients.',
+                    });
+                };
 
-  clientLogin: publicProcedure
-    .input(
-      z.object({
-        phone: z.string().min(10, "Phone number must be at least 10 characters long"),
-        code: z.string().min(6, "Code must be at least 6 characters long"),
-      })
-    )
-    .mutation(async ({ input }) => {
-      // Check if the client exists
-      const client = await db.query.clients.findFirst({
-        where: (clients, { eq }) => eq(clients.phone, input.phone),
-      });
+                const existingClient = await db.query.clients.findFirst({
+                    where: (clients, { eq, and }) =>
+                        and(
+                            eq(clients.phone, input.phone),
+                            eq(clients.businessId, ctx.session?.user.businessId!)
+                        )
+                });
 
-      if (!client) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Client not found"
-        })
-      };
+                if (existingClient) {
+                    throw new TRPCError({
+                        code: 'CONFLICT',
+                        message: 'Client already exist.',
+                    });
+                };
 
-      // да верифицирам СМС кода
-      return client;
-    }),
+                const business = await db.query.businesses.findFirst({
+                    where: (businesses, { eq }) => eq(businesses?.id, ctx.session?.user.businessId!)
+                });
 
+                const clientCount = await db.query.clients.findMany({
+                    where: (clients, { eq }) => eq(clients.businessId, ctx.session?.user.businessId!)
+                });
+
+
+                if (clientCount.length >= (business?.maxClients || 100)) {
+                    throw new TRPCError({
+                        code: 'FORBIDDEN',
+                        message: 'Reached limit.',
+                    });
+                };
+
+                const hashedPassword = await bcrypt.hash(input.password, 10);
+
+                const [client] = await db
+                    .insert(clients)
+                    .values({
+                        businessId: ctx.session.user.businessId!,
+                        name: input.name,
+                        email: input.email,
+                        password: hashedPassword,
+                        phone: input.phone,
+                        address: input.address,
+                        city: input.city,
+                        howDidYouFindUs: input.howDidYouFindUs,
+                        notes: input.notes,
+                        smsConsent: input.smsConsent ?? true,
+                        emailConsent: input.emailConsent ?? false,
+                    })
+                    .returning();
+                //TODO..
+                // if (input.pet) {
+                //   await db.insert(pets).values({
+                //     businessId: ctx.session.user.businessId!,
+                //     clientId: client.id,
+                //     name: input.pet.name,
+                //     species: input.pet.species,
+                //     breed: input.pet.breed,
+                //     color: input.pet.color,
+                //     gender: input.pet.gender,
+                //     birthDate: input.pet.birthDate,
+                //     weight: input.pet.weight,
+                //     allergies: input.pet.allergies,
+                //     medications: input.pet.medications,
+                //     medicalConditions: input.pet.medicalConditions,
+                //     behaviorNotes: input.pet.behaviorNotes,
+                //   });
+                // };
+
+                return {
+                    success: true,
+                    clientId: client.id,
+                    message: 'Client registert sucessfuly.'
+                };
+            }),
+            
     sendClientSMSCode: publicProcedure
       .input(
         z.object({

@@ -126,6 +126,10 @@ const isClient = t.middleware(async ({ctx, next})=>{
     });
   };
 
+  if (!client || !client.password) {
+    throw new Error("Invalid credentials");
+  };  
+
   return next({
     ctx: {
       ...ctx,

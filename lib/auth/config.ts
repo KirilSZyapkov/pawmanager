@@ -90,8 +90,31 @@ export const authConfig: NextAuthOptions = {
                 };
 
                 if (role === 'client') {
-                    // Клиентите влизат с телефон и код, затова връщаме null за credentials
-                    return null;
+                    
+                    const client = await ctx.db.query.clients.findFirst({
+                        where: (clients, {eq})=> eq(clients.email, credentials.email)
+                    });
+
+                    if (!client || !client.password) {
+                        throw new Error("Invalid credentials");
+                    };
+
+                    const isValidPassword = await bcrypt.compare(
+                        credentials.password,
+                        client.password
+                    );
+
+                    if (!isValidPassword) {
+                        throw new Error("Invalid credentials");
+                    }
+
+                    return {
+                        id: client.id,
+                        name: client.name,
+                        email: client.email ?? undefined,
+                        role: "client",
+                        businessId: client.businessId,
+                    };
                 };
 
                 throw new Error("Invalid credentials!");
@@ -103,11 +126,11 @@ export const authConfig: NextAuthOptions = {
             name: 'client-code',
             credentials: {
                 phone: { label: 'Phone', type: 'tel' },
-                code: { label: 'Code', type: 'text' }
+                password: { label: 'Password', type: 'text' }
             },
 
             async authorize(credentials) {
-                if (!credentials?.phone || !credentials?.code) {
+                if (!credentials?.phone || !credentials?.password) {
                     throw new Error("Invalid credentials!");
                 };
 
@@ -115,11 +138,16 @@ export const authConfig: NextAuthOptions = {
                     where: (clients, { eq }) => eq(clients.phone, credentials.phone)
                 });
 
-                if (!client) {
+                if (!client || !client.password) {
                     throw new Error("Invalid credentials!");
                 };
 
-                if (credentials.code !== '123456') {
+                const isValidPassword = await bcrypt.compare(
+                    credentials.password,
+                    client.password
+                );
+
+                if (!isValidPassword) {
                     throw new Error("Invalid credentials!");
                 };
 

@@ -16,6 +16,7 @@ export const businesses = pgTable('businesses', {
   password: text('password').notNull(),
   phone: varchar('phone', { length: 50 }).notNull(),
   address: text('address').notNull(),
+  slug: varchar('slug', { length: 255 }).notNull(),
   city: varchar('city', { length: 100 }).notNull(),
   state: varchar('state', { length: 50 }),
   postalCode: varchar('postal_code', { length: 20 }),

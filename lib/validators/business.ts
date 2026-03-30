@@ -20,6 +20,7 @@ export const registerBusinessSchema = z.object({
   password: z.string().min(8, 'Паролата трябва да е поне 8 символа'),
   address: z.string().min(5, 'Адресът трябва да е поне 5 символа'),
   city: z.string().min(2, 'Градът трябва да е поне 2 символа'),
+  slug: z.string().max(50),
   state: z.string().max(50).optional(),
   postalCode: z.string().max(20).optional(),
   country: z.string().max(50).default('Bulgaria'),
