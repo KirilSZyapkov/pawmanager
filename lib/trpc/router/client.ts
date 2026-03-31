@@ -55,7 +55,7 @@ export const clientRouter = router({
       }
     ),
 
-  getClientRecordById: businessProcedure
+  getClientRecordById: publicProcedure
     .input(z.object({ id: z.uuid() }))
     .query(
       async ({ ctx, input }) => {
@@ -185,7 +185,7 @@ export const clientRouter = router({
     ),
 
 
-  updateClientRecord: businessProcedure
+  updateClientRecord: publicProcedure
     .input(z.object({ id: z.uuid(), data: registerClientSchema.partial() }))
     .mutation(
       async ({ ctx, input }) => {
@@ -206,7 +206,7 @@ export const clientRouter = router({
       }
     ),
 
-  deleteClientRecord: businessProcedure
+  deleteClientRecord: publicProcedure
     .input(z.object({ id: z.uuid() }))
     .mutation(
       async ({ ctx, input }) => {

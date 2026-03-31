@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, publicProcedure, protectedProcedure } from "../trpc";
+import { router, publicProcedure, protectedProcedure, businessProcedure } from "../trpc";
 import db from "@/drizzle/db";
 import { registerBusinessSchema } from "@/lib/validators/business";
 import bcrypt from 'bcryptjs';
 import { businesses, clients, pets, staff } from "@/drizzle/schema";
 import { staffSchema } from "@/lib/validators/staff";
 import { registerClientSchema } from "@/lib/validators/client";
+import { createOwnerSession } from "@/server/auth/ownerSession";
 
 export const authRouter = router({
   // Get the current user's session
@@ -74,7 +75,7 @@ export const authRouter = router({
       }
     }),
 
-  registerNewStaffMember: protectedProcedure
+  registerNewStaffMember: businessProcedure
     .input(staffSchema)
     .mutation(
       async ({ ctx, input }) => {
@@ -143,9 +144,9 @@ export const authRouter = router({
         }
       }),
 
-      registerNewClientAdmin: businessProcedure
-        .input(registerClientSchema)
-        .mutation(
+  registerNewClientAdmin: businessProcedure
+    .input(registerClientSchema)
+    .mutation(
             async ({ ctx, input }) => {
                 if (ctx.session?.user.role !== 'owner' && ctx.session?.user.role !== 'staff') {
                     throw new TRPCError({
@@ -227,17 +228,54 @@ export const authRouter = router({
                     clientId: client.id,
                     message: 'Client registert sucessfuly.'
                 };
-            }),
-            
-    sendClientSMSCode: publicProcedure
-      .input(
-        z.object({
-          phone: z.string().min(10, "Phone number must be at least 10 characters long"),
-        })
-      )
-      .mutation(async ({ input }) => {
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-        // да запиша кода в базата данни и да го изпратя на клиента чрез СМС
-        return { success: true };
-      })
+    }),
+        
+  ownerLogin: publicProcedure
+  .input(
+    z.object({
+      email: z.email(),
+      password: z.string().min(8)
+    })
+  )
+  .mutation(
+    async({ctx, input})=>{
+      const user = await .db.query.staff.findFirst({
+        where: (staff, {eq})=> eq(staff.email, input.email)
+      });
+
+      if(!user || !user.password){
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Invalid credentials",
+          });
+      };
+
+      const isPasswordValid = await bcrypt.compare(input.password, user.password);
+
+      if (!validPassword) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Invalid credentials",
+        });
+      };
+
+      const token = await createOwnerSession(user.id);
+
+      ctx.resHeaders.append(
+        "Set-Cookie",
+        [
+          `owner_session=${token}`,
+        "Path=/",
+        "HttpOnly",
+        "SameSite=Lax",
+        "Secure",
+        "Max-Age=2592000", // 30 days
+        ].join("; ")
+      );
+
+      return {
+        success: true,
+      }
+    }
+  )//end mutation
 })

@@ -3,6 +3,7 @@ import { initTRPC, TRPCError } from '@trpc/server';
 import { ZodError } from 'zod';
 import type { Context } from './context';
 import { clients, staff } from '@/drizzle/schema';
+import { ownerSessions } from '@/drizzle/schemas/ownerSessions';
 
 const t = initTRPC.context<Context>().create({
   // transformer: superjson,
@@ -51,7 +52,28 @@ const isBusinessOwner = t.middleware(async({ctx, next})=>{
       code: 'FORBIDDEN',
       message: 'You do not have right!'
     });
-  }
+  };
+
+  const token = getCookie(ctx.req, "owner_session");
+
+  if(!token){
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  };
+
+  const session = await ctx.db.query.ownerSession.findFirst({
+    where: (ownerSessions, {eq, gt})=> and(eq(ownerSessions.token, token), gt(ownerSessions.expiresAt, new Date())),
+    with:{
+      user: {
+        with: {
+          business: true,
+        }
+      }
+    }
+  });
+
+  if(!session){
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  };
 
   const business = await ctx.db.query.businesses.findFirst({
     where: (business, {eq })=> eq(business.id, ctx.session?.user.businessId!),
@@ -68,6 +90,9 @@ const isBusinessOwner = t.middleware(async({ctx, next})=>{
     ctx: {
       ...ctx,
       business,
+      session:{
+        user: session.user,
+      }
     }
   })
 });

@@ -20,7 +20,7 @@ export default function ClientRegisterPage() {
   return (
     <form
       onSubmit={handleSubmit((data) =>
-        mutation.mutate({
+        mutation.mutate(1{
           ...data,
           businessSlug: slug,
         })
